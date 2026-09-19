@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect } from 'react';
 import { translations, sampleDoctors, sampleHospitals, sampleInitialAppointments, samplePatientProfile } from '../data/sampleData';
 
 const AppContext = createContext();
@@ -145,6 +146,7 @@ export const AppProvider = ({ children }) => {
         hospitals,
         appointments,
         patientProfile,
+        setPatientProfile,
         currentPage,
         navigateTo,
         selectedDoctorId,

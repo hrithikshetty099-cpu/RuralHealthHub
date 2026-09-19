@@ -1,6 +1,5 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Hospital, MapPin, Phone, Clock, AlertTriangle, UserCheck, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, AlertTriangle } from 'lucide-react';
 
 export const HospitalCard = ({ hospital }) => {
   const { t, navigateTo, lowDataMode } = useApp();

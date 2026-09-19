@@ -1,21 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   HeartPulse, 
   Menu, 
   X, 
-  Wifi, 
-  WifiOff, 
   Globe, 
   Mic, 
-  Calendar, 
-  Video, 
   ShieldCheck, 
   User, 
-  Zap, 
-  Hospital, 
-  Stethoscope, 
-  FolderHeart 
+  Zap 
 } from 'lucide-react';
 
 export const Header = () => {
@@ -45,16 +38,6 @@ export const Header = () => {
   const handleNav = (pageId) => {
     navigateTo(pageId);
     setMobileMenuOpen(false);
-  };
-
-  const getStatusColor = () => {
-    switch (networkSpeed) {
-      case 'excellent': return '#16a34a';
-      case 'good': return '#0d9488';
-      case 'poor': return '#f59e0b';
-      case 'offline': return '#dc2626';
-      default: return '#0d9488';
-    }
   };
 
   return (

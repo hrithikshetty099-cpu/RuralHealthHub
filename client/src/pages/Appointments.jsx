@@ -1,6 +1,5 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Calendar, Clock, MapPin, Video, User, Plus, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Video, Plus } from 'lucide-react';
 
 export const Appointments = () => {
   const { appointments, navigateTo } = useApp();

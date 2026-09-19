@@ -1,17 +1,10 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   ArrowLeft, 
   MapPin, 
-  Phone, 
-  Clock, 
-  ShieldAlert, 
   Users, 
-  Activity, 
   Navigation, 
-  CheckCircle,
-  Building,
-  HeartPulse
+  CheckCircle
 } from 'lucide-react';
 
 export const HospitalDetails = () => {

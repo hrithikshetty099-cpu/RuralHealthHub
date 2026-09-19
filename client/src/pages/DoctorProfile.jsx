@@ -1,20 +1,15 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   ArrowLeft, 
   MapPin, 
   Star, 
-  Clock, 
+  Clock,
   Calendar, 
   Video, 
   Award, 
   GraduationCap, 
   Languages, 
-  CheckCircle2, 
-  ShieldAlert, 
-  PhoneCall,
-  IndianRupee,
-  Building
+  CheckCircle2 
 } from 'lucide-react';
 
 export const DoctorProfile = () => {

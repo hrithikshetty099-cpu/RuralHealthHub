@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, MapPin, Search, PhoneCall, AlertTriangle, Navigation, Bed, Layers } from 'lucide-react';
+import { Building2, MapPin, Search, Navigation } from 'lucide-react';
 import { HospitalCard } from '../components/HospitalCard';
 
 export const Hospitals = () => {
-  const { hospitals, navigateTo } = useApp();
+  const { hospitals } = useApp();
   const [filterDistrict, setFilterDistrict] = useState('All');
   const [emergencyOnly, setEmergencyOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

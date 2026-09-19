@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Search, MapPin, Filter, RotateCcw, Stethoscope, Video, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, RotateCcw, Stethoscope } from 'lucide-react';
 import { DoctorCard } from '../components/DoctorCard';
 
 export const Doctors = () => {
   const { 
-    t, 
     doctors, 
     globalSearchTerm, 
     setGlobalSearchTerm, 

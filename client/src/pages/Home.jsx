@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Search, MapPin, Stethoscope, Video, Building2, Calendar, Mic, ArrowRight, ShieldCheck, Heart, Users, Activity, Sparkles } from 'lucide-react';
+import { Search, MapPin, Stethoscope, Video, Building2, Calendar, Mic, ArrowRight, Heart, Users, Activity, Sparkles } from 'lucide-react';
 import { DoctorCard } from '../components/DoctorCard';
 import { HospitalCard } from '../components/HospitalCard';
 

@@ -1,9 +1,8 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
-import { HeartPulse, PhoneCall, ShieldAlert, Globe, MapPin, Mail } from 'lucide-react';
+import { HeartPulse, PhoneCall, ShieldAlert, Globe } from 'lucide-react';
 
 export const Footer = () => {
-  const { t, navigateTo, lowDataMode } = useApp();
+  const { t, navigateTo } = useApp();
 
   return (
     <footer style={{

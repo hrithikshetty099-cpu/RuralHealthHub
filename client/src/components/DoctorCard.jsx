@@ -1,6 +1,5 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Calendar, Video, MapPin, Award, Clock, Star, IndianRupee } from 'lucide-react';
+import { Calendar, Video, MapPin, Clock, Star } from 'lucide-react';
 
 export const DoctorCard = ({ doctor }) => {
   const { t, navigateTo, lowDataMode } = useApp();

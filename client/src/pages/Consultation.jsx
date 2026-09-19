@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   Video, 
@@ -9,11 +9,7 @@ import {
   MessageSquare, 
   Send, 
   Zap, 
-  Wifi, 
   ShieldCheck, 
-  FileText, 
-  User, 
-  AlertCircle,
   Stethoscope
 } from 'lucide-react';
 
@@ -22,7 +18,6 @@ export const Consultation = () => {
     doctors, 
     activeConsultationDoctor, 
     lowDataMode, 
-    setLowDataMode, 
     networkSpeed, 
     setNetworkSpeed,
     navigateTo 

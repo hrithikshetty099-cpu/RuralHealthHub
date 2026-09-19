@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   ArrowLeft, 
-  Calendar, 
-  Clock, 
   CheckCircle2, 
   User, 
-  Phone, 
-  MapPin, 
   FileText, 
-  Video, 
-  Check, 
-  AlertCircle 
+  Video 
 } from 'lucide-react';
 
 export const BookAppointment = () => {
