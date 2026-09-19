@@ -9,6 +9,8 @@ import { HospitalDetails } from './pages/HospitalDetails';
 import { BookAppointment } from './pages/BookAppointment';
 import { Appointments } from './pages/Appointments';
 import { Consultation } from './pages/Consultation';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
 
 const PageRenderer = () => {
   const { currentPage } = useApp();
@@ -30,6 +32,10 @@ const PageRenderer = () => {
       return <Appointments />;
     case 'consultation':
       return <Consultation />;
+    case 'login':
+      return <Login />;
+    case 'dashboard':
+      return <Dashboard />;
     case 'my-health':
       return (
         <div className="container" style={{ padding: '3rem 1.25rem', minHeight: '60vh' }}>

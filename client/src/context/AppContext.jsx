@@ -71,6 +71,10 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('rhh_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
+  useEffect(() => {
+    localStorage.setItem('rhh_patient', JSON.stringify(patientProfile));
+  }, [patientProfile]);
+
   // Real-time network detection simulation & online/offline listeners
   useEffect(() => {
     const handleOnline = () => setNetworkSpeed('good');
