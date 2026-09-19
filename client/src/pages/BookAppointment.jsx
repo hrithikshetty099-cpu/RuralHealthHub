@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { apiRequest } from '../lib/api';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -29,6 +30,8 @@ export const BookAppointment = () => {
   // Step state: 1 = Form, 2 = Confirmation Success
   const [step, setStep] = useState(1);
   const [createdAppointment, setCreatedAppointment] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleDoctorChange = (docId) => {
     const doc = doctors.find(d => d.id === docId);
@@ -40,13 +43,15 @@ export const BookAppointment = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!patientName.trim() || !patientPhone.trim()) {
       alert('Please provide patient name and contact phone number');
       return;
     }
 
+    setIsSubmitting(true);
+    setError('');
     const appointmentId = `APT-${Math.floor(1000 + Math.random() * 9000)}`;
     const newAppt = {
       id: appointmentId,
@@ -63,9 +68,24 @@ export const BookAppointment = () => {
       symptoms
     };
 
-    addAppointment(newAppt);
-    setCreatedAppointment(newAppt);
-    setStep(2);
+    try {
+      const response = await apiRequest('/appointments', { method: 'POST', body: JSON.stringify({
+        doctor_id: selectedDoctor.id,
+        hospital_id: selectedDoctor.hospitalId || null,
+        appointment_date: selectedDate,
+        appointment_time: selectedTime,
+        consultation_type: consultType === 'Online Video' ? 'online' : 'clinic',
+        notes: symptoms,
+      }) });
+      const saved = { ...newAppt, ...response.appointment, id: response.appointment.id };
+      addAppointment(saved);
+      setCreatedAppointment(saved);
+      setStep(2);
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to book this appointment.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -281,6 +301,7 @@ export const BookAppointment = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                {error && <div style={{ color: '#b91c1c', marginRight: 'auto', alignSelf: 'center' }}>{error}</div>}
                 <button
                   type="button"
                   onClick={() => navigateTo('doctors')}
@@ -291,8 +312,9 @@ export const BookAppointment = () => {
                 <button
                   type="submit"
                   className="btn btn-primary btn-lg"
+                  disabled={isSubmitting}
                 >
-                  Confirm Appointment & Generate Token
+                  {isSubmitting ? 'Booking...' : 'Confirm Appointment & Generate Token'}
                 </button>
               </div>
             </form>
@@ -378,7 +400,7 @@ export const BookAppointment = () => {
               </button>
               {createdAppointment.consultationType.includes('Online') && (
                 <button
-                  onClick={() => navigateTo('consultation')}
+                  onClick={() => navigateTo('consultation', { consultationAppointment: createdAppointment })}
                   className="btn btn-success"
                 >
                   <Video size={16} /> Open Tele-Consultation Room

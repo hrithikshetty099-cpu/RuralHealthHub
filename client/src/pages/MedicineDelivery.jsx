@@ -6,7 +6,10 @@ import { BackToDashboardButton } from '../components/BackToDashboardButton';
 
 export const MedicineDelivery = () => {
   const { navigateTo, prescriptions, deliveries } = useApp();
-  const [deliveryLocation, setDeliveryLocation] = useState('Village Health Centre, Hosanagara, Karnataka');
+  const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [village, setVillage] = useState('');
+  const [district, setDistrict] = useState('');
+  const [phone, setPhone] = useState('');
   const [selectedPrescription, setSelectedPrescription] = useState(prescriptions[0] || null);
   const [activeDelivery, setActiveDelivery] = useState(deliveries[0] || null);
   const [message, setMessage] = useState('');
@@ -16,7 +19,7 @@ export const MedicineDelivery = () => {
     try {
       const response = await apiRequest('/medicine-deliveries', {
         method: 'POST',
-        body: JSON.stringify({ prescription_id: selectedPrescription.id, delivery_address: deliveryLocation }),
+        body: JSON.stringify({ prescription_id: selectedPrescription.id, delivery_address: deliveryLocation, village, district, phone }),
       });
       setActiveDelivery(response.delivery);
       setMessage('Delivery request created. The pharmacy will update its status here.');
@@ -73,6 +76,12 @@ export const MedicineDelivery = () => {
             style={{ width: '100%', resize: 'vertical', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.8rem', fontFamily: 'inherit' }}
           />
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <input className="input-control" value={village} onChange={(event) => setVillage(event.target.value)} placeholder="Village" required />
+            <input className="input-control" value={district} onChange={(event) => setDistrict(event.target.value)} placeholder="District" required />
+          </div>
+          <input className="input-control" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Delivery phone" style={{ marginTop: '0.75rem' }} required />
+
           <div style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
             <strong style={{ color: 'var(--text-main)' }}>Courier ETA:</strong> 30-45 minutes
           </div>
@@ -86,8 +95,8 @@ export const MedicineDelivery = () => {
         </div>
 
         <div style={{ display: 'grid', gap: '0.75rem' }}>
-          {['Preparing', 'Dispatched', 'Out for Delivery', 'Delivered'].map((stage) => {
-            const active = Boolean(activeDelivery && ['Preparing', 'Dispatched', 'Out for Delivery', 'Delivered'].indexOf(stage) <= ['Preparing', 'Dispatched', 'Out for Delivery', 'Delivered'].indexOf(activeDelivery.status));
+          {['requested', 'preparing', 'dispatched', 'out_for_delivery', 'delivered'].map((stage) => {
+            const active = Boolean(activeDelivery && ['requested', 'preparing', 'dispatched', 'out_for_delivery', 'delivered'].indexOf(stage) <= ['requested', 'preparing', 'dispatched', 'out_for_delivery', 'delivered'].indexOf(activeDelivery.status));
             return (
               <div key={stage} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div
@@ -100,7 +109,7 @@ export const MedicineDelivery = () => {
                   }}
                 />
                 <span style={{ color: active ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: active ? 700 : 500 }}>
-                  {stage}
+                  {stage.replaceAll('_', ' ')}
                 </span>
               </div>
             );

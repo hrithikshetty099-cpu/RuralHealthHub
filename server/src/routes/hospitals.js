@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const { location, name } = req.query;
+    const { location, name, district } = req.query;
 
     let query = 'SELECT * FROM hospitals';
     const values = [];
@@ -20,6 +20,11 @@ router.get('/', async (req, res, next) => {
     if (location) {
       conditions.push(`location ILIKE $${values.length + 1}`);
       values.push(`%${location}%`);
+    }
+
+    if (district) {
+      conditions.push(`district ILIKE $${values.length + 1}`);
+      values.push(`%${district}%`);
     }
 
     if (conditions.length > 0) {
@@ -62,7 +67,7 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', auth, requireRole('admin'), async (req, res, next) => {
   try {
-    const { name, location, phone, distance, services, opening_hours } = req.body;
+    const { name, location, village, district, phone, distance, services, opening_hours, latitude, longitude } = req.body;
 
     if (!name || !location) {
       return res.status(400).json({
@@ -73,11 +78,11 @@ router.post('/', auth, requireRole('admin'), async (req, res, next) => {
 
     const result = await pool.query(
       `
-        INSERT INTO hospitals (name, location, phone, distance, services, opening_hours)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO hospitals (name, location, village, district, phone, distance, services, opening_hours, latitude, longitude)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `,
-      [name, location, phone || '', distance || '', services || '', opening_hours || '']
+      [name, location, village || '', district || '', phone || '', distance || '', services || '', opening_hours || '', latitude || null, longitude || null]
     );
 
     res.status(201).json({

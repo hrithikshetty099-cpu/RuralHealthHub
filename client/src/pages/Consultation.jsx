@@ -53,6 +53,10 @@ export const Consultation = () => {
   const [callStatus, setCallStatus] = useState('Waiting for the other participant');
   const [prescription, setPrescription] = useState({ medicines: '', instructions: '', follow_up_date: '' });
   const [prescriptionSaved, setPrescriptionSaved] = useState(false);
+  const [consultationId, setConsultationId] = useState(null);
+  const [doctorNotes, setDoctorNotes] = useState('');
+  const [diagnosis, setDiagnosis] = useState('');
+  const [followUpInstructions, setFollowUpInstructions] = useState('');
 
   // Auto consultation mode recommendation based on network
   const getConsultationModeRecommendation = () => {
@@ -89,6 +93,15 @@ export const Consultation = () => {
       setCameraActive(false);
     }
     try {
+      let consultationRoomId = `consultation-${activeConsultationAppointment?.id || selectedDoctor.id}`;
+      if (activeConsultationAppointment?.id) {
+        const consultationResponse = await apiRequest('/consultations', {
+          method: 'POST',
+          body: JSON.stringify({ appointment_id: activeConsultationAppointment.id }),
+        });
+        setConsultationId(consultationResponse.consultation.id);
+        consultationRoomId = consultationResponse.consultation.room_id;
+      }
       localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: !lowDataMode && networkSpeed !== 'poor' });
       if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
       const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
@@ -104,7 +117,7 @@ export const Consultation = () => {
       peer.onconnectionstatechange = () => setCallStatus(peer.connectionState === 'connected' ? 'Live consultation' : peer.connectionState);
       const socket = new WebSocket(websocketUrl());
       socketRef.current = socket;
-      socket.onopen = () => sendSignal({ type: 'join', roomId: `consultation-${selectedDoctor.id}` });
+      socket.onopen = () => sendSignal({ type: 'join', roomId: consultationRoomId });
       socket.onmessage = async (event) => {
         const message = JSON.parse(event.data);
         if (message.type === 'peer-joined') await createOffer();
@@ -142,11 +155,17 @@ export const Consultation = () => {
   const savePrescription = async (event) => {
     event.preventDefault();
     try {
+      if (!consultationId) throw new Error('Join the consultation before completing it.');
+      await apiRequest(`/consultations/${consultationId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'completed', doctor_notes: doctorNotes, diagnosis, follow_up_instructions: followUpInstructions, follow_up_date: prescription.follow_up_date || null }),
+      });
       await apiRequest('/prescriptions', {
         method: 'POST',
         body: JSON.stringify({
           patient_id: activeConsultationAppointment?.patient_id || activeConsultationAppointment?.patientId,
           doctor_id: selectedDoctor.id,
+          consultation_id: consultationId,
           medicines: prescription.medicines,
           instructions: prescription.instructions,
           follow_up_date: prescription.follow_up_date || null,
@@ -567,6 +586,18 @@ export const Consultation = () => {
             {authUser?.role === 'doctor' && (
               <form className="card" onSubmit={savePrescription} style={{ backgroundColor: '#ffffff' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Complete consultation</h3>
+                <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '0.8rem', fontWeight: 600 }}>
+                  Diagnosis / clinical notes
+                  <textarea required rows="3" className="input-control" value={diagnosis} onChange={(event) => setDiagnosis(event.target.value)} />
+                </label>
+                <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '0.8rem', fontWeight: 600 }}>
+                  Consultation notes
+                  <textarea required rows="3" className="input-control" value={doctorNotes} onChange={(event) => setDoctorNotes(event.target.value)} />
+                </label>
+                <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '0.8rem', fontWeight: 600 }}>
+                  Follow-up instructions
+                  <textarea rows="2" className="input-control" value={followUpInstructions} onChange={(event) => setFollowUpInstructions(event.target.value)} />
+                </label>
                 <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '0.8rem', fontWeight: 600 }}>
                   Prescription / medicines
                   <textarea required rows="3" className="input-control" value={prescription.medicines} onChange={(event) => setPrescription({ ...prescription, medicines: event.target.value })} placeholder="Enter only medicines you prescribed" />

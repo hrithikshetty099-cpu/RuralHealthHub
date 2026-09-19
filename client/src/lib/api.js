@@ -13,10 +13,16 @@ export const apiRequest = async (path, options = {}) => {
       },
     });
   } catch {
-    throw new Error('The health server is offline. Start the backend in the server folder and check server/.env (DATABASE_URL and JWT_SECRET).');
+    const error = new Error('The health server is offline.');
+    error.code = 'NETWORK_ERROR';
+    throw error;
   }
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message || 'Request failed');
+  if (!response.ok) {
+    const error = new Error(body.message || 'Request failed');
+    error.status = response.status;
+    throw error;
+  }
   return body;
 };
 

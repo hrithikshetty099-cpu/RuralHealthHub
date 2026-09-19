@@ -49,7 +49,13 @@ export const AppProvider = ({ children }) => {
   // Navigation state: 'home' | 'doctors' | 'doctor-profile' | 'hospitals' | 'hospital-details' | 'book-appointment' | 'appointments' | 'consultation' | 'my-health' | 'voice-assistant' | 'admin' | 'login' | 'dashboard'
   const [currentPage, setCurrentPage] = useState(() => {
     const savedUser = localStorage.getItem('rhh_auth_user');
-    return savedUser ? 'dashboard' : 'home';
+    if (!savedUser) return 'home';
+    try {
+      const role = JSON.parse(savedUser).role;
+      return role === 'doctor' ? 'doctor-dashboard' : role === 'admin' ? 'admin-portal' : 'dashboard';
+    } catch {
+      return 'home';
+    }
   });
   const [selectedDoctorId, setSelectedDoctorId] = useState(null);
   const [selectedHospitalId, setSelectedHospitalId] = useState(null);
@@ -128,6 +134,18 @@ export const AppProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, [authUser]);
 
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([apiRequest('/doctors'), apiRequest('/hospitals')]).then(([doctorData, hospitalData]) => {
+      if (cancelled) return;
+      if (doctorData.doctors?.length) setDoctors(doctorData.doctors);
+      if (hospitalData.hospitals?.length) setHospitals(hospitalData.hospitals);
+    }).catch(() => {
+      // Preserve the local directory fallback when the API is unavailable.
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // Real-time network detection simulation & online/offline listeners
   useEffect(() => {
     const handleOnline = () => setNetworkSpeed('good');
@@ -176,14 +194,17 @@ export const AppProvider = ({ children }) => {
 
   const login = (user, token = null) => {
     const normalizedUser = {
+      id: user?.id || null,
       name: user?.name || user?.email?.split('@')[0] || 'Patient',
       email: user?.email || '',
       phone: user?.phone || '',
+      village: user?.village || '',
+      district: user?.district || '',
       role: user?.role || 'patient',
     };
     setAuthUser(normalizedUser);
     if (token) localStorage.setItem('rhh_auth_token', token);
-    setCurrentPage('dashboard');
+    setCurrentPage(normalizedUser.role === 'doctor' ? 'doctor-dashboard' : normalizedUser.role === 'admin' ? 'admin-portal' : 'dashboard');
     return normalizedUser;
   };
 

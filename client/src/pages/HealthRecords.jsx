@@ -3,8 +3,8 @@ import { FileText, CalendarClock, Pill, HeartPulse } from 'lucide-react';
 import { BackToDashboardButton } from '../components/BackToDashboardButton';
 
 export const HealthRecords = () => {
-  const { patientProfile } = useApp();
-  const records = patientProfile?.previousVisits || [];
+  const { patientProfile, healthRecords, prescriptions } = useApp();
+  const records = healthRecords.length > 0 ? healthRecords : (patientProfile?.previousVisits || []);
 
   return (
     <div className="container" style={{ padding: '2.5rem 1.25rem 3.5rem', minHeight: '70vh' }}>
@@ -22,12 +22,12 @@ export const HealthRecords = () => {
             <div key={record.id} className="card" style={{ backgroundColor: '#ffffff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>{record.doctor}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>{record.hospital}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>{record.doctor_name || record.doctor}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>{record.hospital_name || record.hospital || 'Healthcare facility'}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{record.date}</div>
-                  <div className="badge badge-green" style={{ marginTop: '0.35rem' }}>{record.status}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{record.visit_date || record.date}</div>
+                  <div className="badge badge-green" style={{ marginTop: '0.35rem' }}>{record.status || 'Completed'}</div>
                 </div>
               </div>
 
@@ -36,14 +36,14 @@ export const HealthRecords = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     <FileText size={16} color="var(--primary)" /> Why visit
                   </div>
-                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.reason}</div>
+                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.reason || record.diagnosis || 'Consultation'}</div>
                 </div>
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     <HeartPulse size={16} color="var(--primary)" /> Notes
                   </div>
-                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.notes}</div>
+                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.notes || record.doctor_notes || 'No notes recorded.'}</div>
                 </div>
               </div>
 
@@ -52,14 +52,14 @@ export const HealthRecords = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     <Pill size={16} color="var(--primary)" /> Prescription
                   </div>
-                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.prescription}</div>
+                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.prescription || prescriptions.filter((item) => item.consultation_id === record.consultation_id).map((item) => item.medicines).join(', ') || 'No prescription recorded.'}</div>
                 </div>
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     <CalendarClock size={16} color="var(--primary)" /> Follow-up
                   </div>
-                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.followUp}</div>
+                  <div style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{record.follow_up_date || record.followUp || 'No follow-up scheduled.'}</div>
                 </div>
               </div>
             </div>

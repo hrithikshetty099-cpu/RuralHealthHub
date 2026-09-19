@@ -20,16 +20,20 @@ const signToken = (user) =>
 
 router.post('/register', async (req, res, next) => {
   try {
-    const { name, email, password, phone, role = 'patient' } = req.body;
+    const { name, email, password, phone, village, district } = req.body;
+    const role = 'patient';
 
-    if (!name || !email || !password) {
+    const normalizedName = name?.trim();
+    const normalizedEmail = email?.trim().toLowerCase();
+
+    if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: 'Name, email, and password are required',
       });
     }
 
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const existing = await pool.query('SELECT id FROM users WHERE LOWER(email) = $1', [normalizedEmail]);
 
     if (existing.rows.length > 0) {
       return res.status(409).json({
@@ -42,11 +46,11 @@ router.post('/register', async (req, res, next) => {
 
     const result = await pool.query(
       `
-        INSERT INTO users (name, email, password_hash, phone, role)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, email, phone, role, created_at
+        INSERT INTO users (name, email, password_hash, phone, village, district, role)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, name, email, phone, village, district, role, created_at
       `,
-      [name, email, passwordHash, phone || null, role]
+      [normalizedName, normalizedEmail, passwordHash, phone?.trim() || null, village?.trim() || null, district?.trim() || null, role]
     );
 
     const user = result.rows[0];
@@ -60,10 +64,17 @@ router.post('/register', async (req, res, next) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        village: user.village,
+        district: user.district,
         role: user.role,
       },
     });
   } catch (error) {
+    console.error('Registration failed:', {
+      code: error.code,
+      message: error.message,
+      detail: error.detail,
+    });
     next(error);
   }
 });
@@ -80,8 +91,8 @@ router.post('/login', async (req, res, next) => {
     }
 
     const result = await pool.query(
-      'SELECT id, name, email, password_hash, phone, role FROM users WHERE email = $1',
-      [email]
+      'SELECT id, name, email, password_hash, phone, village, district, role FROM users WHERE LOWER(email) = $1',
+      [email.trim().toLowerCase()]
     );
 
     if (result.rows.length === 0) {
@@ -111,6 +122,8 @@ router.post('/login', async (req, res, next) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        village: user.village,
+        district: user.district,
         role: user.role,
       },
     });
@@ -122,7 +135,7 @@ router.post('/login', async (req, res, next) => {
 router.get('/me', auth, async (req, res, next) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, phone, role, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, phone, village, district, role, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
 

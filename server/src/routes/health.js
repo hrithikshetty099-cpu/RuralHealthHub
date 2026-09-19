@@ -9,7 +9,7 @@ router.get('/', auth, async (req, res, next) => {
     let query = 'SELECT * FROM health_records';
     const values = [];
 
-    if (req.user.role === 'patient') {
+    if (req.user.role !== 'admin') {
       query += ' WHERE patient_id = $1';
       values.push(req.user.id);
     }

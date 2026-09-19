@@ -5,7 +5,7 @@ import { apiRequest } from '../lib/api';
 export const Login = () => {
   const { navigateTo, setPatientProfile, patientProfile, t, login } = useApp();
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', village: '', district: '' });
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
@@ -40,16 +40,33 @@ export const Login = () => {
     try {
       const response = await apiRequest(`/auth/${mode === 'register' ? 'register' : 'login'}`, {
         method: 'POST',
-        body: JSON.stringify({ name: displayName, email: form.email, password: form.password, phone: updatedProfile.phone }),
+        body: JSON.stringify({ name: displayName, email: form.email, password: form.password, phone: form.phone || updatedProfile.phone, village: form.village, district: form.district }),
       });
       setPatientProfile({ ...updatedProfile, ...response.user });
       login(response.user, response.token);
     } catch (requestError) {
-      const technicalError = requestError.message || '';
-      const userMessage = technicalError.includes('PostgreSQL') || technicalError.includes('DATABASE_URL')
-        ? 'Unable to sign in at this time. Please try again later.'
-        : technicalError;
-      setError(userMessage || 'Unable to connect to the health service.');
+      const isRegistering = mode === 'register';
+      let userMessage;
+
+      if (requestError.code === 'NETWORK_ERROR') {
+        userMessage = isRegistering
+          ? 'We could not reach the registration service. Please start the backend and try again.'
+          : 'We could not reach the sign-in service. Please try again shortly.';
+      } else if (requestError.status === 409) {
+        userMessage = 'An account with this email already exists. Please sign in instead.';
+      } else if (requestError.status === 400) {
+        userMessage = requestError.message;
+      } else if (requestError.status >= 500 || requestError.status === 503) {
+        userMessage = isRegistering
+          ? 'Unable to create your account right now. Please try again later.'
+          : 'Unable to sign in right now. Please try again later.';
+      } else {
+        userMessage = requestError.message;
+      }
+
+      setError(userMessage || (isRegistering
+        ? 'We could not create your account. Please try again.'
+        : 'We could not sign you in. Please try again.'));
       return;
     }
 
@@ -102,6 +119,25 @@ export const Login = () => {
                 style={{ width: '100%', padding: '0.8rem 0.9rem', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '0.96rem', boxSizing: 'border-box' }}
               />
             </div>
+          )}
+
+          {mode === 'register' && (
+            <>
+              <div>
+                <label htmlFor="phone" style={{ display: 'block', marginBottom: '0.45rem', fontWeight: 600 }}>Phone</label>
+                <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="Phone number" style={{ width: '100%', padding: '0.8rem 0.9rem', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '0.96rem', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label htmlFor="village" style={{ display: 'block', marginBottom: '0.45rem', fontWeight: 600 }}>Village</label>
+                  <input id="village" name="village" type="text" value={form.village} onChange={handleChange} placeholder="Village" style={{ width: '100%', padding: '0.8rem 0.9rem', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '0.96rem', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label htmlFor="district" style={{ display: 'block', marginBottom: '0.45rem', fontWeight: 600 }}>District</label>
+                  <input id="district" name="district" type="text" value={form.district} onChange={handleChange} placeholder="District" style={{ width: '100%', padding: '0.8rem 0.9rem', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '0.96rem', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+            </>
           )}
 
           <div>

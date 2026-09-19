@@ -14,11 +14,20 @@ if (!databaseUrl) {
 export const pool = new Pool({
   connectionString: databaseUrl,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 5000,
 });
 
+pool.on('connect', () => {
+  console.log('PostgreSQL database connected successfully');
+});
+
+export const checkDatabaseConnection = async () => {
+  await pool.query('SELECT NOW()');
+  console.log('Database connection successful');
+};
+
 pool.on('error', (err) => {
-  console.error('Unexpected PostgreSQL pool error:', err);
-  process.exit(-1);
+  console.error('PostgreSQL pool error:', err.message);
 });
 
 export default pool;

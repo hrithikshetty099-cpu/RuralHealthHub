@@ -2,7 +2,7 @@ import { useApp } from '../context/AppContext';
 import { Activity, CalendarDays, Hospital, Stethoscope, HeartPulse, ArrowRight, PackageCheck } from 'lucide-react';
 
 export const Dashboard = () => {
-  const { patientProfile, appointments, doctors, hospitals, navigateTo } = useApp();
+  const { patientProfile, appointments, doctors, hospitals, healthRecords, prescriptions, deliveries, navigateTo } = useApp();
 
   const stats = [
     { label: 'Doctors', value: doctors.length, icon: Stethoscope },
@@ -63,10 +63,10 @@ export const Dashboard = () => {
           </div>
 
           <div style={{ display: 'grid', gap: '0.8rem', color: 'var(--text-muted)' }}>
-            <div><strong style={{ color: 'var(--text-main)' }}>Blood Pressure:</strong> 118/76 mmHg</div>
-            <div><strong style={{ color: 'var(--text-main)' }}>Last Visit:</strong> 2 weeks ago</div>
-            <div><strong style={{ color: 'var(--text-main)' }}>Follow-up:</strong> Review on Friday</div>
-            <div><strong style={{ color: 'var(--text-main)' }}>Vaccination:</strong> Up to date</div>
+            <div><strong style={{ color: 'var(--text-main)' }}>Last Visit:</strong> {healthRecords[0]?.visit_date || 'No recorded visit'}</div>
+            <div><strong style={{ color: 'var(--text-main)' }}>Prescriptions:</strong> {prescriptions.length}</div>
+            <div><strong style={{ color: 'var(--text-main)' }}>Medicine Delivery:</strong> {deliveries[0]?.status || 'No active request'}</div>
+            <div><strong style={{ color: 'var(--text-main)' }}>Follow-up:</strong> {healthRecords[0]?.follow_up_date || 'Not scheduled'}</div>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin.js';
 import consultationRoutes from './routes/consultations.js';
 import prescriptionRoutes from './routes/prescriptions.js';
 import medicineDeliveryRoutes from './routes/medicineDeliveries.js';
+import pool, { checkDatabaseConnection } from './db.js';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 
@@ -38,11 +39,19 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Rural Health Hub backend is running',
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ success: true, message: 'Rural Health Hub backend is running', database: 'connected' });
+  } catch (error) {
+    console.error('Health check database error:', error);
+    res.status(503).json({
+      success: false,
+      message: 'Rural Health Hub backend is running but database connection failed',
+      database: 'disconnected',
+      ...(process.env.NODE_ENV !== 'production' ? { error: error.message } : {}),
+    });
+  }
 });
 
 app.use('/api/auth', authRoutes);
@@ -54,6 +63,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/medicine-deliveries', medicineDeliveryRoutes);
+app.use('/api/medicines', medicineDeliveryRoutes);
+app.use('/api/medicine-delivery', medicineDeliveryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -118,6 +129,24 @@ websocketServer.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await checkDatabaseConnection();
+    httpServer.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+  } catch (error) {
+    const databaseUrl = new URL(process.env.DATABASE_URL);
+    console.error('DATABASE CONNECTION ERROR');
+    console.error('Error code:', error.code || 'UNKNOWN');
+    console.error('Error message:', error.message);
+    console.error('Host:', databaseUrl.hostname);
+    console.error('Port:', databaseUrl.port || '5432');
+    console.error('Database:', databaseUrl.pathname.slice(1));
+    if (error.code === '28P01') console.error('PostgreSQL rejected the password. Replace the placeholder in server/.env.');
+    if (error.code === '3D000') console.error('The rural_health_hub database does not exist. Run server/create-database.sql.');
+    if (error.code === 'ECONNREFUSED') console.error('PostgreSQL is not running or is using a different port.');
+    if (error.code === 'ENOTFOUND') console.error('The PostgreSQL hostname could not be resolved.');
+    process.exit(1);
+  }
+};
+
+startServer();

@@ -8,22 +8,23 @@ router.get('/', async (req, res, next) => {
   try {
     const { specialization, location, available } = req.query;
 
-    let query = 'SELECT * FROM doctors';
+    let query = `SELECT d.*, h.name AS hospital_name, h.location AS hospital_location
+      FROM doctors d LEFT JOIN hospitals h ON h.id = d.hospital_id`;
     const values = [];
     const conditions = [];
 
     if (specialization) {
-      conditions.push(`specialization ILIKE $${values.length + 1}`);
+      conditions.push(`d.specialization ILIKE $${values.length + 1}`);
       values.push(`%${specialization}%`);
     }
 
     if (location) {
-      conditions.push(`location ILIKE $${values.length + 1}`);
+      conditions.push(`d.location ILIKE $${values.length + 1}`);
       values.push(`%${location}%`);
     }
 
     if (available !== undefined) {
-      conditions.push(`is_available = $${values.length + 1}`);
+      conditions.push(`d.is_available = $${values.length + 1}`);
       values.push(available === 'true');
     }
 
@@ -31,7 +32,7 @@ router.get('/', async (req, res, next) => {
       query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY d.created_at DESC';
 
     const result = await pool.query(query, values);
 
@@ -47,7 +48,11 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const result = await pool.query('SELECT * FROM doctors WHERE id = $1', [req.params.id]);
+    const result = await pool.query(
+      `SELECT d.*, h.name AS hospital_name, h.location AS hospital_location
+       FROM doctors d LEFT JOIN hospitals h ON h.id = d.hospital_id WHERE d.id = $1`,
+      [req.params.id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -69,7 +74,10 @@ router.post('/', auth, requireRole('admin', 'doctor'), async (req, res, next) =>
   try {
     const {
       name,
+      user_id,
+      hospital_id,
       specialization,
+      qualification,
       experience,
       hospital,
       location,
@@ -88,13 +96,16 @@ router.post('/', auth, requireRole('admin', 'doctor'), async (req, res, next) =>
 
     const result = await pool.query(
       `
-        INSERT INTO doctors (name, specialization, experience, hospital, location, phone, consultation_fee, available_time, is_available)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO doctors (user_id, hospital_id, name, specialization, qualification, experience, hospital, location, phone, consultation_fee, available_time, is_available)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
       `,
       [
+        user_id || null,
+        hospital_id || null,
         name,
         specialization,
+        qualification || '',
         experience || '',
         hospital || '',
         location,

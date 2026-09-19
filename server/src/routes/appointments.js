@@ -1,29 +1,39 @@
 import express from 'express';
 import { pool } from '../db.js';
-import auth from '../middleware/auth.js';
+import auth, { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.get('/my', auth, (req, res, next) => {
+  req.query.patientId = req.user.id;
+  return router.handle(req, res, next);
+});
 
 router.get('/', auth, async (req, res, next) => {
   try {
     const { patientId, doctorId } = req.query;
     let query = `SELECT a.*, d.name AS doctor_name, d.specialization AS doctor_specialization,
-      d.hospital AS hospital_name, d.location AS hospital_location
-      FROM appointments a JOIN doctors d ON d.id = a.doctor_id`;
+      d.hospital AS hospital_name, d.location AS hospital_location, p.name AS patient_name,
+      h.name AS linked_hospital_name
+      FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+      JOIN users p ON p.id = a.patient_id LEFT JOIN hospitals h ON h.id = a.hospital_id`;
     const values = [];
     const conditions = [];
 
-    if (req.user.role === 'patient' && !patientId) {
+    if (req.user.role === 'patient') {
       conditions.push('a.patient_id = $' + (values.length + 1));
       values.push(req.user.id);
     }
 
-    if (patientId) {
+    if (req.user.role === 'doctor') {
+      conditions.push('d.user_id = $' + (values.length + 1));
+      values.push(req.user.id);
+    } else if (patientId) {
       conditions.push('a.patient_id = $' + (values.length + 1));
       values.push(patientId);
     }
 
-    if (doctorId) {
+    if (req.user.role === 'admin' && doctorId) {
       conditions.push('a.doctor_id = $' + (values.length + 1));
       values.push(doctorId);
     }
@@ -66,6 +76,10 @@ router.post('/', auth, async (req, res, next) => {
       });
     }
 
+    if (!patientId && req.user.role !== 'patient') {
+      return res.status(400).json({ success: false, message: 'Patient is required' });
+    }
+
     const result = await pool.query(
       `
         INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, consultation_type, notes, status)
@@ -84,7 +98,7 @@ router.post('/', auth, async (req, res, next) => {
   }
 });
 
-router.patch('/:id/status', auth, async (req, res, next) => {
+router.patch('/:id/status', auth, requireRole('admin', 'doctor'), async (req, res, next) => {
   try {
     const { status } = req.body;
 
@@ -95,10 +109,14 @@ router.patch('/:id/status', auth, async (req, res, next) => {
       });
     }
 
-    const result = await pool.query(
-      'UPDATE appointments SET status = $1 WHERE id = $2 RETURNING *',
-      [status, req.params.id]
-    );
+    const values = [status, req.params.id];
+    let query = 'UPDATE appointments SET status = $1 WHERE id = $2';
+    if (req.user.role === 'doctor') {
+      query += ' AND doctor_id IN (SELECT id FROM doctors WHERE user_id = $3)';
+      values.push(req.user.id);
+    }
+    query += ' RETURNING *';
+    const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({

@@ -14,6 +14,8 @@ import { Dashboard } from './pages/Dashboard';
 import { HealthRecords } from './pages/HealthRecords';
 import { VoiceAssistant } from './pages/VoiceAssistant';
 import { MedicineDelivery } from './pages/MedicineDelivery';
+import { DoctorDashboard } from './pages/DoctorDashboard';
+import { AdminPortal } from './pages/AdminPortal';
 
 const PageRenderer = () => {
   const { currentPage } = useApp();
@@ -39,6 +41,10 @@ const PageRenderer = () => {
       return <Login />;
     case 'dashboard':
       return <Dashboard />;
+    case 'doctor-dashboard':
+      return <DoctorDashboard />;
+    case 'admin-portal':
+      return <AdminPortal />;
     case 'my-health':
       return <HealthRecords />;
     case 'voice-assistant':
