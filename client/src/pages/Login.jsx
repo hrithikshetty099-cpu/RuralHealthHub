@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { apiRequest } from '../lib/api';
 
 export const Login = () => {
-  const { navigateTo, setPatientProfile, patientProfile, t } = useApp();
+  const { navigateTo, setPatientProfile, patientProfile, t, login } = useApp();
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -12,7 +13,7 @@ export const Login = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.email || !form.password) {
@@ -29,12 +30,28 @@ export const Login = () => {
       ? form.name.trim()
       : (form.email.split('@')[0].replace(/[._-]/g, ' ').trim() || 'Patient');
 
-    setPatientProfile({
+    const updatedProfile = {
       ...patientProfile,
       name: displayName,
       email: form.email,
       phone: patientProfile?.phone || '+91 00000 00000',
-    });
+    };
+
+    try {
+      const response = await apiRequest(`/auth/${mode === 'register' ? 'register' : 'login'}`, {
+        method: 'POST',
+        body: JSON.stringify({ name: displayName, email: form.email, password: form.password, phone: updatedProfile.phone }),
+      });
+      setPatientProfile({ ...updatedProfile, ...response.user });
+      login(response.user, response.token);
+    } catch (requestError) {
+      const technicalError = requestError.message || '';
+      const userMessage = technicalError.includes('PostgreSQL') || technicalError.includes('DATABASE_URL')
+        ? 'Unable to sign in at this time. Please try again later.'
+        : technicalError;
+      setError(userMessage || 'Unable to connect to the health service.');
+      return;
+    }
 
     setError('');
     navigateTo('dashboard');

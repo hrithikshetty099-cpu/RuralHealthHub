@@ -77,6 +77,29 @@ CREATE TABLE consultations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE prescriptions (
+  id SERIAL PRIMARY KEY,
+  consultation_id INTEGER REFERENCES consultations(id) ON DELETE SET NULL,
+  patient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  doctor_id INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+  medicines TEXT NOT NULL,
+  instructions TEXT,
+  follow_up_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE medicine_deliveries (
+  id SERIAL PRIMARY KEY,
+  prescription_id INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+  patient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  delivery_address TEXT NOT NULL,
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7),
+  status VARCHAR(30) NOT NULL DEFAULT 'Preparing' CHECK (status IN ('Preparing', 'Dispatched', 'Out for Delivery', 'Delivered')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_doctors_specialization ON doctors(specialization);
 CREATE INDEX idx_doctors_location ON doctors(location);
@@ -84,3 +107,5 @@ CREATE INDEX idx_hospitals_location ON hospitals(location);
 CREATE INDEX idx_appointments_patient ON appointments(patient_id);
 CREATE INDEX idx_appointments_doctor ON appointments(doctor_id);
 CREATE INDEX idx_health_records_patient ON health_records(patient_id);
+CREATE INDEX idx_prescriptions_patient ON prescriptions(patient_id);
+CREATE INDEX idx_deliveries_patient ON medicine_deliveries(patient_id);

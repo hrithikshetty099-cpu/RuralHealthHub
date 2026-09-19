@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { apiRequest, websocketUrl } from '../lib/api';
+import { BackToDashboardButton } from '../components/BackToDashboardButton';
 import { 
   Video, 
   Mic, 
@@ -20,7 +22,9 @@ export const Consultation = () => {
     lowDataMode, 
     networkSpeed, 
     setNetworkSpeed,
-    navigateTo 
+    navigateTo,
+    authUser,
+    activeConsultationAppointment
   } = useApp();
 
   const [selectedDoctor, setSelectedDoctor] = useState(
@@ -41,6 +45,14 @@ export const Consultation = () => {
     { sender: 'doctor', text: `Namaste Ramesh-ji, I am ${selectedDoctor.name}. Please tell me your symptoms in detail.` }
   ]);
   const [inputMsg, setInputMsg] = useState('');
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const peerRef = useRef(null);
+  const socketRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const [callStatus, setCallStatus] = useState('Waiting for the other participant');
+  const [prescription, setPrescription] = useState({ medicines: '', instructions: '', follow_up_date: '' });
+  const [prescriptionSaved, setPrescriptionSaved] = useState(false);
 
   // Auto consultation mode recommendation based on network
   const getConsultationModeRecommendation = () => {
@@ -60,33 +72,96 @@ export const Consultation = () => {
     setMessages(prev => [...prev, newMsg]);
     setInputMsg('');
 
-    // Simulate doctor automated realistic reply after 1 second
-    setTimeout(() => {
-      setMessages(prev => [
-        ...prev, 
-        { 
-          sender: 'doctor', 
-          text: `I understand. I am noting down your symptoms in your digital prescription. Take warm water sips, and I will issue an e-prescription to your health card.` 
-        }
-      ]);
-    }, 1200);
   };
 
-  const handleStartCall = () => {
+  const sendSignal = (message) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify(message));
+  };
+
+  const createOffer = async () => {
+    const offer = await peerRef.current.createOffer();
+    await peerRef.current.setLocalDescription(offer);
+    sendSignal({ type: 'offer', offer });
+  };
+
+  const handleStartCall = async () => {
     if (lowDataMode || networkSpeed === 'poor') {
       setCameraActive(false);
+    }
+    try {
+      localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: !lowDataMode && networkSpeed !== 'poor' });
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+      const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+      peerRef.current = peer;
+      localStreamRef.current.getTracks().forEach((track) => peer.addTrack(track, localStreamRef.current));
+      peer.ontrack = (event) => {
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
+        setCallStatus('Doctor connected');
+      };
+      peer.onicecandidate = (event) => {
+        if (event.candidate) sendSignal({ type: 'candidate', candidate: event.candidate });
+      };
+      peer.onconnectionstatechange = () => setCallStatus(peer.connectionState === 'connected' ? 'Live consultation' : peer.connectionState);
+      const socket = new WebSocket(websocketUrl());
+      socketRef.current = socket;
+      socket.onopen = () => sendSignal({ type: 'join', roomId: `consultation-${selectedDoctor.id}` });
+      socket.onmessage = async (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'peer-joined') await createOffer();
+        if (message.type === 'offer') {
+          await peer.setRemoteDescription(message.offer);
+          const answer = await peer.createAnswer();
+          await peer.setLocalDescription(answer);
+          sendSignal({ type: 'answer', answer });
+        }
+        if (message.type === 'answer') await peer.setRemoteDescription(message.answer);
+        if (message.type === 'candidate') await peer.addIceCandidate(message.candidate);
+      };
+      setCallStatus('Connected to consultation room; waiting for doctor');
+    } catch {
+      setCallStatus('Camera or microphone permission is required for a live call');
+      return;
     }
     setIsInCall(true);
   };
 
   const handleEndCall = () => {
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    peerRef.current?.close();
+    socketRef.current?.close();
     setIsInCall(false);
     navigateTo('my-health');
+  };
+
+  useEffect(() => () => {
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    peerRef.current?.close();
+    socketRef.current?.close();
+  }, []);
+
+  const savePrescription = async (event) => {
+    event.preventDefault();
+    try {
+      await apiRequest('/prescriptions', {
+        method: 'POST',
+        body: JSON.stringify({
+          patient_id: activeConsultationAppointment?.patient_id || activeConsultationAppointment?.patientId,
+          doctor_id: selectedDoctor.id,
+          medicines: prescription.medicines,
+          instructions: prescription.instructions,
+          follow_up_date: prescription.follow_up_date || null,
+        }),
+      });
+      setPrescriptionSaved(true);
+    } catch (error) {
+      setCallStatus(error.message);
+    }
   };
 
   return (
     <div style={{ padding: '2.5rem 0', backgroundColor: 'var(--bg-main)', minHeight: '80vh' }}>
       <div className="container">
+        <BackToDashboardButton />
         
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -321,11 +396,8 @@ export const Consultation = () => {
               }}>
                 {cameraActive && !lowDataMode ? (
                   <div style={{ width: '100%', height: '240px', borderRadius: 'var(--radius-md)', overflow: 'hidden', position: 'relative' }}>
-                    <img
-                      src={selectedDoctor.image}
-                      alt="Doctor Video Feed"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.95)' }}
-                    />
+                    <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#1e293b' }} />
+                    <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '120px', height: '84px', objectFit: 'cover', position: 'absolute', right: '10px', bottom: '10px', borderRadius: '6px', border: '1px solid #ffffff' }} />
                     <div style={{
                       position: 'absolute',
                       bottom: '10px',
@@ -335,7 +407,7 @@ export const Consultation = () => {
                       borderRadius: '4px',
                       fontSize: '0.75rem'
                     }}>
-                      Doctor Feed (360p Low Bandwidth)
+                      {callStatus}
                     </div>
                   </div>
                 ) : (
@@ -491,6 +563,25 @@ export const Consultation = () => {
                 </button>
               </form>
             </div>
+
+            {authUser?.role === 'doctor' && (
+              <form className="card" onSubmit={savePrescription} style={{ backgroundColor: '#ffffff' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Complete consultation</h3>
+                <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '0.8rem', fontWeight: 600 }}>
+                  Prescription / medicines
+                  <textarea required rows="3" className="input-control" value={prescription.medicines} onChange={(event) => setPrescription({ ...prescription, medicines: event.target.value })} placeholder="Enter only medicines you prescribed" />
+                </label>
+                <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '0.8rem', fontWeight: 600 }}>
+                  Instructions
+                  <textarea rows="3" className="input-control" value={prescription.instructions} onChange={(event) => setPrescription({ ...prescription, instructions: event.target.value })} />
+                </label>
+                <label style={{ display: 'grid', gap: '0.4rem', marginBottom: '1rem', fontWeight: 600 }}>
+                  Follow-up date
+                  <input type="date" className="input-control" value={prescription.follow_up_date} onChange={(event) => setPrescription({ ...prescription, follow_up_date: event.target.value })} />
+                </label>
+                <button className="btn btn-primary" type="submit">{prescriptionSaved ? 'Prescription Saved' : 'Send Prescription to Patient'}</button>
+              </form>
+            )}
           </div>
         )}
 

@@ -11,6 +11,9 @@ import { Appointments } from './pages/Appointments';
 import { Consultation } from './pages/Consultation';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { HealthRecords } from './pages/HealthRecords';
+import { VoiceAssistant } from './pages/VoiceAssistant';
+import { MedicineDelivery } from './pages/MedicineDelivery';
 
 const PageRenderer = () => {
   const { currentPage } = useApp();
@@ -37,27 +40,11 @@ const PageRenderer = () => {
     case 'dashboard':
       return <Dashboard />;
     case 'my-health':
-      return (
-        <div className="container" style={{ padding: '3rem 1.25rem', minHeight: '60vh' }}>
-          <div className="card" style={{ maxWidth: '720px', margin: '0 auto', backgroundColor: '#ffffff' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.75rem' }}>My Health</h1>
-            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>
-              Your health records, appointment history, and follow-up reminders will appear here.
-            </p>
-          </div>
-        </div>
-      );
+      return <HealthRecords />;
     case 'voice-assistant':
-      return (
-        <div className="container" style={{ padding: '3rem 1.25rem', minHeight: '60vh' }}>
-          <div className="card" style={{ maxWidth: '720px', margin: '0 auto', backgroundColor: '#ffffff' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.75rem' }}>Voice Assistant</h1>
-            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>
-              This is a placeholder for voice-driven healthcare guidance and quick access to services.
-            </p>
-          </div>
-        </div>
-      );
+      return <VoiceAssistant />;
+    case 'medicine-delivery':
+      return <MedicineDelivery />;
     default:
       return <Home />;
   }

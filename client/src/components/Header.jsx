@@ -20,7 +20,9 @@ export const Header = () => {
     setLowDataMode, 
     networkSpeed, 
     currentPage, 
-    navigateTo 
+    navigateTo,
+    authUser,
+    logout
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -234,12 +236,18 @@ export const Header = () => {
           </button>
 
           <button
-            onClick={() => handleNav('login')}
+            onClick={() => {
+              if (authUser) {
+                logout();
+                return;
+              }
+              handleNav('login');
+            }}
             className="btn btn-primary btn-sm"
             style={{ fontSize: '0.82rem', padding: '0.45rem 0.95rem' }}
           >
             <User size={15} />
-            <span>{t.nav.login}</span>
+            <span>{authUser ? 'Logout' : t.nav.login}</span>
           </button>
 
           {/* Mobile hamburger menu toggle */}

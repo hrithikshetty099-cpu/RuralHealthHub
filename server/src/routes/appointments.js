@@ -7,22 +7,24 @@ const router = express.Router();
 router.get('/', auth, async (req, res, next) => {
   try {
     const { patientId, doctorId } = req.query;
-    let query = 'SELECT * FROM appointments';
+    let query = `SELECT a.*, d.name AS doctor_name, d.specialization AS doctor_specialization,
+      d.hospital AS hospital_name, d.location AS hospital_location
+      FROM appointments a JOIN doctors d ON d.id = a.doctor_id`;
     const values = [];
     const conditions = [];
 
     if (req.user.role === 'patient' && !patientId) {
-      conditions.push('patient_id = $' + (values.length + 1));
+      conditions.push('a.patient_id = $' + (values.length + 1));
       values.push(req.user.id);
     }
 
     if (patientId) {
-      conditions.push('patient_id = $' + (values.length + 1));
+      conditions.push('a.patient_id = $' + (values.length + 1));
       values.push(patientId);
     }
 
     if (doctorId) {
-      conditions.push('doctor_id = $' + (values.length + 1));
+      conditions.push('a.doctor_id = $' + (values.length + 1));
       values.push(doctorId);
     }
 
@@ -30,7 +32,7 @@ router.get('/', auth, async (req, res, next) => {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY a.created_at DESC';
 
     const result = await pool.query(query, values);
 

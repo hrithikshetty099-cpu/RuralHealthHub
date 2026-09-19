@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
 import { translations, sampleDoctors, sampleHospitals, sampleInitialAppointments, samplePatientProfile } from '../data/sampleData';
+import { apiRequest } from '../lib/api';
 
 const AppContext = createContext();
 
@@ -10,6 +11,17 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('rhh_lowdata') === 'true';
   });
   const [networkSpeed, setNetworkSpeed] = useState('good'); // 'excellent' | 'good' | 'poor' | 'offline'
+  const [authUser, setAuthUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rhh_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [healthRecords, setHealthRecords] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [deliveries, setDeliveries] = useState([]);
   
   // Doctors & Hospitals state
   const [doctors, setDoctors] = useState(() => {
@@ -34,12 +46,16 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : samplePatientProfile;
   });
 
-  // Navigation state: 'home' | 'doctors' | 'doctor-profile' | 'hospitals' | 'hospital-details' | 'book-appointment' | 'appointments' | 'consultation' | 'my-health' | 'voice-assistant' | 'admin' | 'login'
-  const [currentPage, setCurrentPage] = useState('home');
+  // Navigation state: 'home' | 'doctors' | 'doctor-profile' | 'hospitals' | 'hospital-details' | 'book-appointment' | 'appointments' | 'consultation' | 'my-health' | 'voice-assistant' | 'admin' | 'login' | 'dashboard'
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedUser = localStorage.getItem('rhh_auth_user');
+    return savedUser ? 'dashboard' : 'home';
+  });
   const [selectedDoctorId, setSelectedDoctorId] = useState(null);
   const [selectedHospitalId, setSelectedHospitalId] = useState(null);
   const [prefilledBookingDoctor, setPrefilledBookingDoctor] = useState(null);
   const [activeConsultationDoctor, setActiveConsultationDoctor] = useState(null);
+  const [activeConsultationAppointment, setActiveConsultationAppointment] = useState(null);
 
   // Search parameters for navigation from Home
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
@@ -74,6 +90,43 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('rhh_patient', JSON.stringify(patientProfile));
   }, [patientProfile]);
+
+  useEffect(() => {
+    if (authUser) {
+      localStorage.setItem('rhh_auth_user', JSON.stringify(authUser));
+    } else {
+      localStorage.removeItem('rhh_auth_user');
+    }
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser || !localStorage.getItem('rhh_auth_token')) return undefined;
+    let cancelled = false;
+    Promise.all([
+      apiRequest('/appointments'),
+      apiRequest('/health-records'),
+      apiRequest('/prescriptions'),
+      apiRequest('/medicine-deliveries'),
+    ]).then(([appointmentData, healthData, prescriptionData, deliveryData]) => {
+      if (cancelled) return;
+      setAppointments((appointmentData.appointments || []).map((appointment) => ({
+        ...appointment,
+        doctorName: appointment.doctor_name,
+        doctorSpecialty: appointment.doctor_specialization,
+        hospitalName: appointment.hospital_name,
+        date: appointment.appointment_date,
+        time: appointment.appointment_time,
+        consultationType: appointment.consultation_type === 'online' ? 'Online Video' : 'In-Person',
+        status: appointment.status,
+      })));
+      setHealthRecords(healthData.records || []);
+      setPrescriptions(prescriptionData.prescriptions || []);
+      setDeliveries(deliveryData.deliveries || []);
+    }).catch(() => {
+      // Keep the existing local data visible if the API is temporarily unavailable.
+    });
+    return () => { cancelled = true; };
+  }, [authUser]);
 
   // Real-time network detection simulation & online/offline listeners
   useEffect(() => {
@@ -116,8 +169,28 @@ export const AppProvider = ({ children }) => {
     if (params.hospitalId) setSelectedHospitalId(params.hospitalId);
     if (params.bookingDoctor) setPrefilledBookingDoctor(params.bookingDoctor);
     if (params.consultDoctor) setActiveConsultationDoctor(params.consultDoctor);
+    if (params.consultationAppointment) setActiveConsultationAppointment(params.consultationAppointment);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: lowDataMode ? 'auto' : 'smooth' });
+  };
+
+  const login = (user, token = null) => {
+    const normalizedUser = {
+      name: user?.name || user?.email?.split('@')[0] || 'Patient',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      role: user?.role || 'patient',
+    };
+    setAuthUser(normalizedUser);
+    if (token) localStorage.setItem('rhh_auth_token', token);
+    setCurrentPage('dashboard');
+    return normalizedUser;
+  };
+
+  const logout = () => {
+    setAuthUser(null);
+    localStorage.removeItem('rhh_auth_token');
+    setCurrentPage('login');
   };
 
   const addAppointment = (newAppt) => {
@@ -149,10 +222,17 @@ export const AppProvider = ({ children }) => {
         doctors,
         hospitals,
         appointments,
+        healthRecords,
+        prescriptions,
+        deliveries,
         patientProfile,
         setPatientProfile,
         currentPage,
         navigateTo,
+        isAuthenticated: !!authUser,
+        authUser,
+        login,
+        logout,
         selectedDoctorId,
         setSelectedDoctorId,
         selectedHospitalId,
@@ -161,6 +241,8 @@ export const AppProvider = ({ children }) => {
         setPrefilledBookingDoctor,
         activeConsultationDoctor,
         setActiveConsultationDoctor,
+        activeConsultationAppointment,
+        setActiveConsultationAppointment,
         globalSearchTerm,
         setGlobalSearchTerm,
         globalLocationTerm,

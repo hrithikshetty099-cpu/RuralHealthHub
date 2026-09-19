@@ -1,5 +1,6 @@
 import { useApp } from '../context/AppContext';
 import { Calendar, Video, Plus } from 'lucide-react';
+import { BackToDashboardButton } from '../components/BackToDashboardButton';
 
 export const Appointments = () => {
   const { appointments, navigateTo } = useApp();
@@ -7,6 +8,7 @@ export const Appointments = () => {
   return (
     <div style={{ padding: '2.5rem 0', backgroundColor: 'var(--bg-main)', minHeight: '80vh' }}>
       <div className="container">
+        <BackToDashboardButton />
         
         {/* Header */}
         <div style={{
@@ -109,7 +111,7 @@ export const Appointments = () => {
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   {appt.consultationType.includes('Online') && (
                     <button
-                      onClick={() => navigateTo('consultation')}
+                      onClick={() => navigateTo('consultation', { consultationAppointment: appt })}
                       className="btn btn-success btn-sm"
                     >
                       <Video size={15} /> Enter Tele-Consultation Room

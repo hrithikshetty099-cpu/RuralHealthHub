@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Search, MapPin, RotateCcw, Stethoscope } from 'lucide-react';
 import { DoctorCard } from '../components/DoctorCard';
+import { BackToDashboardButton } from '../components/BackToDashboardButton';
 
 export const Doctors = () => {
   const { 
@@ -64,6 +65,7 @@ export const Doctors = () => {
   return (
     <div style={{ padding: '2.5rem 0', backgroundColor: 'var(--bg-main)', minHeight: '80vh' }}>
       <div className="container">
+        <BackToDashboardButton />
         
         {/* Page Header */}
         <div style={{ marginBottom: '2rem' }}>

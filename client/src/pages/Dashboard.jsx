@@ -1,5 +1,5 @@
 import { useApp } from '../context/AppContext';
-import { Activity, CalendarDays, Hospital, Stethoscope, HeartPulse, ArrowRight } from 'lucide-react';
+import { Activity, CalendarDays, Hospital, Stethoscope, HeartPulse, ArrowRight, PackageCheck } from 'lucide-react';
 
 export const Dashboard = () => {
   const { patientProfile, appointments, doctors, hospitals, navigateTo } = useApp();
@@ -49,6 +49,9 @@ export const Dashboard = () => {
             </button>
             <button onClick={() => navigateTo('appointments')} className="btn btn-secondary" style={{ justifyContent: 'center' }}>
               <CalendarDays size={16} /> View Appointments
+            </button>
+            <button onClick={() => navigateTo('medicine-delivery')} className="btn btn-secondary" style={{ justifyContent: 'center' }}>
+              <PackageCheck size={16} /> Request Medicine Delivery
             </button>
           </div>
         </div>

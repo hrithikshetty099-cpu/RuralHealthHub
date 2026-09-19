@@ -1,13 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Building2, MapPin, Search, Navigation } from 'lucide-react';
 import { HospitalCard } from '../components/HospitalCard';
+import { BackToDashboardButton } from '../components/BackToDashboardButton';
 
 export const Hospitals = () => {
   const { hospitals } = useApp();
   const [filterDistrict, setFilterDistrict] = useState('All');
   const [emergencyOnly, setEmergencyOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationMessage, setLocationMessage] = useState('Location access is required to find the nearest facility.');
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationMessage('Live location is not supported by this browser.');
+      return undefined;
+    }
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+        setLocationMessage('Live location is active. Distances can be calculated from your current position.');
+      },
+      () => setLocationMessage('Location permission was not granted. Search still works without GPS.'),
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const districts = ['All', 'Mandya', 'Tumakuru', 'Shirur / Bagalkote', 'Kolar'];
 
@@ -26,6 +45,7 @@ export const Hospitals = () => {
   return (
     <div style={{ padding: '2.5rem 0', backgroundColor: 'var(--bg-main)', minHeight: '80vh' }}>
       <div className="container">
+        <BackToDashboardButton />
         
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
@@ -59,8 +79,8 @@ export const Hospitals = () => {
               <Navigation size={18} color="var(--primary)" />
               <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Regional Healthcare Facilities Map (Simulated GPS)</span>
             </div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Targeting rural taluk clusters • 4 major centres registered
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {userLocation ? `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : locationMessage}
             </span>
           </div>
 
@@ -106,7 +126,7 @@ export const Hospitals = () => {
               color: '#0f172a',
               zIndex: 2
             }}>
-              <span className="pulse-dot pulse-green" /> You are in: Mandya Rural Hobli • Nearest: Shirur PHC (1.1 km)
+              <span className="pulse-dot pulse-green" /> {userLocation ? 'Tracking your current location' : 'Enable location to track your nearest clinic or hospital'}
             </div>
           </div>
         </div>

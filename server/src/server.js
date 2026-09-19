@@ -9,10 +9,15 @@ import appointmentRoutes from './routes/appointments.js';
 import healthRoutes from './routes/health.js';
 import adminRoutes from './routes/admin.js';
 import consultationRoutes from './routes/consultations.js';
+import prescriptionRoutes from './routes/prescriptions.js';
+import medicineDeliveryRoutes from './routes/medicineDeliveries.js';
+import { WebSocketServer } from 'ws';
+import http from 'http';
 
 dotenv.config();
 
 const app = express();
+const httpServer = http.createServer(app);
 const PORT = Number(process.env.PORT) || 5000;
 
 const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
@@ -47,6 +52,8 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/health-records', healthRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/consultations', consultationRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/medicine-deliveries', medicineDeliveryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -58,6 +65,15 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
 
+  if (err.code === '28P01' || err.code === '3D000') {
+    return res.status(503).json({
+      success: false,
+      message: err.code === '28P01'
+        ? 'PostgreSQL rejected the password in server/.env. Replace YOUR_POSTGRES_PASSWORD with your actual postgres password.'
+        : 'The rural_health_hub database does not exist. Create it and run server/database.sql first.',
+    });
+  }
+
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
 
@@ -67,6 +83,41 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+const websocketServer = new WebSocketServer({ server: httpServer, path: '/ws' });
+const rooms = new Map();
+
+websocketServer.on('connection', (socket) => {
+  let roomId;
+  socket.on('message', (rawMessage) => {
+    try {
+      const message = JSON.parse(rawMessage.toString());
+      if (message.type === 'join' && message.roomId) {
+        roomId = message.roomId;
+        const peers = rooms.get(roomId) || new Set();
+        peers.forEach((peer) => peer.send(JSON.stringify({ type: 'peer-joined' })));
+        peers.add(socket);
+        rooms.set(roomId, peers);
+        return;
+      }
+
+      const peers = rooms.get(roomId) || new Set();
+      peers.forEach((peer) => {
+        if (peer !== socket && peer.readyState === 1) peer.send(JSON.stringify(message));
+      });
+    } catch {
+      socket.send(JSON.stringify({ type: 'error', message: 'Invalid signaling message' }));
+    }
+  });
+
+  socket.on('close', () => {
+    const peers = rooms.get(roomId);
+    if (!peers) return;
+    peers.delete(socket);
+    peers.forEach((peer) => peer.send(JSON.stringify({ type: 'peer-left' })));
+    if (peers.size === 0) rooms.delete(roomId);
+  });
+});
+
+httpServer.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
