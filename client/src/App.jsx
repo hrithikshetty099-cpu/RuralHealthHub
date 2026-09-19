@@ -1,133 +1,79 @@
+import React from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { Home } from './pages/Home';
+import { Doctors } from './pages/Doctors';
+import { DoctorProfile } from './pages/DoctorProfile';
+import { Hospitals } from './pages/Hospitals';
+import { HospitalDetails } from './pages/HospitalDetails';
+import { BookAppointment } from './pages/BookAppointment';
+import { Appointments } from './pages/Appointments';
+import { Consultation } from './pages/Consultation';
+
+const PageRenderer = () => {
+  const { currentPage } = useApp();
+
+  switch (currentPage) {
+    case 'home':
+      return <Home />;
+    case 'doctors':
+      return <Doctors />;
+    case 'doctor-profile':
+      return <DoctorProfile />;
+    case 'hospitals':
+      return <Hospitals />;
+    case 'hospital-details':
+      return <HospitalDetails />;
+    case 'book-appointment':
+      return <BookAppointment />;
+    case 'appointments':
+      return <Appointments />;
+    case 'consultation':
+      return <Consultation />;
+    case 'my-health':
+      return (
+        <div className="container" style={{ padding: '3rem 1.25rem', minHeight: '60vh' }}>
+          <div className="card" style={{ maxWidth: '720px', margin: '0 auto', backgroundColor: '#ffffff' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.75rem' }}>My Health</h1>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              Your health records, appointment history, and follow-up reminders will appear here.
+            </p>
+          </div>
+        </div>
+      );
+    case 'voice-assistant':
+      return (
+        <div className="container" style={{ padding: '3rem 1.25rem', minHeight: '60vh' }}>
+          <div className="card" style={{ maxWidth: '720px', margin: '0 auto', backgroundColor: '#ffffff' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.75rem' }}>Voice Assistant</h1>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              This is a placeholder for voice-driven healthcare guidance and quick access to services.
+            </p>
+          </div>
+        </div>
+      );
+    default:
+      return <Home />;
+  }
+};
+
 function App() {
   return (
-    <div className="app">
-      <header className="header">
-        <div className="logo">
-          🏥 Rural<span>Health</span>
-        </div>
-
-        <nav>
-          <a href="#home">Home</a>
-          <a href="#doctors">Find Doctors</a>
-          <a href="#hospitals">Hospitals</a>
-          <a href="#appointments">Appointments</a>
-          <a href="#consult">Consult Online</a>
-        </nav>
-
-        <button className="login">Login</button>
-      </header>
-
-      <main>
-        <section className="hero" id="home">
-          <div className="hero-text">
-            <p className="tag">🌿 Healthcare closer to you</p>
-
-            <h1>
-              Quality Healthcare
-              <br />
-              <span>Anywhere, Anytime.</span>
-            </h1>
-
-            <p className="description">
-              Find nearby doctors, hospitals and healthcare services.
-              Book appointments and consult doctors online — even on
-              slow 3G networks.
-            </p>
-
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search doctor, speciality or service"
-              />
-
-              <input
-                type="text"
-                placeholder="📍 Village / District"
-              />
-
-              <button>🔍 Search</button>
-            </div>
-          </div>
-
-          <div className="hero-card">
-            <div className="doctor-icon">👨‍⚕️</div>
-            <h2>Healthcare at your fingertips</h2>
-            <p>Connect with trusted healthcare providers near you.</p>
-          </div>
-        </section>
-
-        <section className="services">
-          <h2>How can we help you?</h2>
-          <p className="section-text">
-            Access essential healthcare services from one place.
-          </p>
-
-          <div className="service-grid">
-            <div className="service-card">
-              <div>👨‍⚕️</div>
-              <h3>Find a Doctor</h3>
-              <p>Search doctors by speciality and location.</p>
-              <button>Find Doctors →</button>
-            </div>
-
-            <div className="service-card">
-              <div>🏥</div>
-              <h3>Nearby Hospitals</h3>
-              <p>Discover hospitals and clinics near your village.</p>
-              <button>View Hospitals →</button>
-            </div>
-
-            <div className="service-card">
-              <div>📅</div>
-              <h3>Book Appointment</h3>
-              <p>Choose a doctor and book a convenient time.</p>
-              <button>Book Now →</button>
-            </div>
-
-            <div className="service-card">
-              <div>💻</div>
-              <h3>Consult Online</h3>
-              <p>Talk to a doctor remotely using low data mode.</p>
-              <button>Consult Now →</button>
-            </div>
-          </div>
-        </section>
-
-        <section className="features">
-          <div>
-            <span>📶</span>
-            <h3>Works on 3G</h3>
-            <p>Low-data design for rural and unstable networks.</p>
-          </div>
-
-          <div>
-            <span>🌐</span>
-            <h3>Multiple Languages</h3>
-            <p>Access healthcare information in your language.</p>
-          </div>
-
-          <div>
-            <span>📋</span>
-            <h3>My Health</h3>
-            <p>Keep track of appointments and previous visits.</p>
-          </div>
-
-          <div>
-            <span>🎤</span>
-            <h3>Voice Assistance</h3>
-            <p>Find healthcare services using voice commands.</p>
-          </div>
-        </section>
+    <div className="app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Header />
+      <main style={{ flex: 1 }}>
+        <PageRenderer />
       </main>
-
-      <footer>
-        <div className="logo">
-          🏥 Rural<span>Health</span>
-        </div>
-        <p>Healthcare access, closer to you.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
 
-export default App;
+export default function AppRoot() {
+  return (
+    <AppProvider>
+      <App />
+    </AppProvider>
+  );
+}
