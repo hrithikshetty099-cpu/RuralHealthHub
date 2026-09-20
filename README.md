@@ -38,12 +38,18 @@ CREATE DATABASE rural_health_hub;
 
 ```env
 PORT=5000
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/rural_health_hub
-JWT_SECRET=CHANGE_THIS_TO_A_LONG_RANDOM_SECRET
-CLIENT_ORIGIN=http://localhost:5173
+DATABASE_URL=postgresql://postgres:REPLACE_WITH_YOUR_POSTGRES_PASSWORD@localhost:5432/rural_health_hub
+JWT_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET
+CLIENT_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 ```
 
 Never commit `.env` or real credentials.
+
+The frontend does not use a third-party API key. Its API base URL is configured with `client/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
 
 4. Install and start the backend:
 

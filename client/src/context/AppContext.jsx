@@ -22,6 +22,23 @@ export const AppProvider = ({ children }) => {
   const [healthRecords, setHealthRecords] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
+
+  const normalizeDoctor = (doctor) => ({
+    ...doctor,
+    hospitalId: doctor.hospitalId ?? doctor.hospital_id ?? null,
+    hospitalName: doctor.hospitalName ?? doctor.hospital_name ?? doctor.hospital ?? 'Healthcare facility',
+    timeSlots: doctor.timeSlots || (doctor.available_time ? doctor.available_time.split(/\s*,\s*/) : ['10:00 AM']),
+    isAvailable: doctor.isAvailable ?? doctor.is_available ?? true,
+  });
+
+  const normalizeHospital = (hospital) => ({
+    ...hospital,
+    village: hospital.village || '',
+    district: hospital.district || '',
+    phone: hospital.phone || '',
+    services: hospital.services || '',
+    openingHours: hospital.openingHours || hospital.opening_hours || '',
+  });
   
   // Doctors & Hospitals state
   const [doctors, setDoctors] = useState(() => {
@@ -119,7 +136,8 @@ export const AppProvider = ({ children }) => {
         ...appointment,
         doctorName: appointment.doctor_name,
         doctorSpecialty: appointment.doctor_specialization,
-        hospitalName: appointment.hospital_name,
+        hospitalName: appointment.linked_hospital_name || appointment.hospital_name,
+        patientName: appointment.patient_name,
         date: appointment.appointment_date,
         time: appointment.appointment_time,
         consultationType: appointment.consultation_type === 'online' ? 'Online Video' : 'In-Person',
@@ -138,8 +156,8 @@ export const AppProvider = ({ children }) => {
     let cancelled = false;
     Promise.all([apiRequest('/doctors'), apiRequest('/hospitals')]).then(([doctorData, hospitalData]) => {
       if (cancelled) return;
-      if (doctorData.doctors?.length) setDoctors(doctorData.doctors);
-      if (hospitalData.hospitals?.length) setHospitals(hospitalData.hospitals);
+      if (doctorData.doctors?.length) setDoctors(doctorData.doctors.map(normalizeDoctor));
+      if (hospitalData.hospitals?.length) setHospitals(hospitalData.hospitals.map(normalizeHospital));
     }).catch(() => {
       // Preserve the local directory fallback when the API is unavailable.
     });
@@ -270,7 +288,8 @@ export const AppProvider = ({ children }) => {
         setGlobalLocationTerm,
         addAppointment,
         addDoctor,
-        addHospital
+        addHospital,
+        setDeliveries
       }}
     >
       {children}

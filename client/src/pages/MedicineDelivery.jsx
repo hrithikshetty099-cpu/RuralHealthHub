@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiRequest } from '../lib/api';
-import { MapPin, PackageCheck, Truck, ArrowRight, Pill } from 'lucide-react';
+import { MapPin, Truck, ArrowRight, Pill } from 'lucide-react';
 import { BackToDashboardButton } from '../components/BackToDashboardButton';
 
 export const MedicineDelivery = () => {
-  const { navigateTo, prescriptions, deliveries } = useApp();
+  const { navigateTo, prescriptions, deliveries, setDeliveries } = useApp();
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [village, setVillage] = useState('');
   const [district, setDistrict] = useState('');
@@ -22,6 +22,7 @@ export const MedicineDelivery = () => {
         body: JSON.stringify({ prescription_id: selectedPrescription.id, delivery_address: deliveryLocation, village, district, phone }),
       });
       setActiveDelivery(response.delivery);
+      setDeliveries((currentDeliveries) => [response.delivery, ...currentDeliveries]);
       setMessage('Delivery request created. The pharmacy will update its status here.');
     } catch (error) {
       setMessage(error.message);

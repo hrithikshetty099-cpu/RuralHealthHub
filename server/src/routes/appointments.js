@@ -4,6 +4,17 @@ import auth, { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const normalizeTime = (value) => {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return value;
+  let hour = Number(match[1]);
+  const minute = match[2];
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === 'PM' && hour < 12) hour += 12;
+  if (meridiem === 'AM' && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, '0')}:${minute}`;
+};
+
 router.get('/my', auth, (req, res, next) => {
   req.query.patientId = req.user.id;
   return router.handle(req, res, next);
@@ -65,6 +76,7 @@ router.post('/', auth, async (req, res, next) => {
       consultation_type,
       notes,
       patient_id,
+      hospital_id,
     } = req.body;
 
     const patientId = req.user.role === 'patient' ? req.user.id : patient_id;
@@ -82,11 +94,11 @@ router.post('/', auth, async (req, res, next) => {
 
     const result = await pool.query(
       `
-        INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, consultation_type, notes, status)
-        VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+        INSERT INTO appointments (patient_id, doctor_id, hospital_id, appointment_date, appointment_time, consultation_type, notes, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
         RETURNING *
       `,
-      [patientId, doctor_id, appointment_date, appointment_time, consultation_type, notes || '']
+      [patientId, doctor_id, hospital_id || null, appointment_date, normalizeTime(appointment_time), consultation_type, notes || '']
     );
 
     res.status(201).json({
